@@ -1,0 +1,39 @@
+alias: Automatic Lighting - Downstairs
+description: ""
+trigger:
+  - type: turned_on
+    platform: device
+    device_id: d0085e772b533d56496cc99a3ec1256e
+    entity_id: binary_sensor.downstairs_motion
+    domain: binary_sensor
+    id: Motion
+  - type: turned_off
+    platform: device
+    device_id: d0085e772b533d56496cc99a3ec1256e
+    entity_id: binary_sensor.downstairs_motion
+    domain: binary_sensor
+    id: No Motion
+    for:
+      hours: 0
+      minutes: 1
+      seconds: 0
+condition: []
+action:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: Motion
+        sequence:
+          - type: turn_on
+            device_id: abf7062f5aa5f5dcca8b4a68851f27d7
+            entity_id: light.downstairs_light
+            domain: light
+      - conditions:
+          - condition: trigger
+            id: No Motion
+        sequence:
+          - type: turn_off
+            device_id: abf7062f5aa5f5dcca8b4a68851f27d7
+            entity_id: switch.light_switch
+            domain: switch
+mode: single
