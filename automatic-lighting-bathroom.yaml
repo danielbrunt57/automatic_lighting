@@ -1,0 +1,57 @@
+alias: Automatic Lighting - Bathroom
+description: ""
+trigger:
+  - type: motion
+    platform: device
+    device_id: a79617834365fd6c11997048e5b2711d
+    entity_id: binary_sensor.bathroom_occupancy
+    domain: binary_sensor
+    id: Motion
+  - id: No Motion
+    platform: template
+    value_template: "{{is_state('binary_sensor.bathroom_occupancy','off') }}"
+    for:
+      seconds: "{{ states('input_number.bathroom_light_auto_off_time')|int(0) }}"
+condition: []
+action:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: Motion
+          - condition: state
+            entity_id: light.bathroom_light
+            state: "off"
+        sequence:
+          - service: light.turn_on
+            data:
+              brightness: "{{ states('input_number.bathroom_minimum_turn_on')|float(0) }}"
+            target:
+              entity_id: light.bathroom_light
+          - delay:
+              hours: 0
+              minutes: 0
+              seconds: 1
+              milliseconds: 500
+          - service: light.turn_on
+            data:
+              transition: 5
+              brightness: >-
+                {{max(states("input_number.bathroom_minimum")|float(0),states("input_number.bathroom_minimum_turn_on")|float(0))
+                if is_state("input_boolean.sleep_mode", "on") else
+                max(states("input_number.bathroom_minimum")|float(0),states("sensor.circadian_brightness")|float(0))}}
+            target:
+              entity_id: light.bathroom_light
+      - conditions:
+          - condition: trigger
+            id: No Motion
+          - condition: state
+            entity_id: light.bathroom_light
+            state: "on"
+        sequence:
+          - delay: "{{ states('input_number.bathroom_light_auto_off_time') }}"
+            enabled: false
+          - type: turn_off
+            device_id: 9ffc5618d5df2d3a408bae4f98c2d2c4
+            entity_id: light.bathroom_light
+            domain: light
+mode: restart
