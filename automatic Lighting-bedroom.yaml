@@ -1,0 +1,130 @@
+alias: Automatic Lighting - Bedroom
+description: ""
+trigger:
+  - platform: state
+    entity_id:
+      - binary_sensor.bedroom_occupancy
+    to: "on"
+    id: Motion
+  - platform: template
+    value_template: "{{is_state('binary_sensor.bedroom_occupancy','off') }}"
+    for:
+      seconds: "{{ states('input_number.bedroom_light_auto_off_time')|int(0) }}"
+    id: No Motion
+  - platform: state
+    entity_id:
+      - binary_sensor.night_mode
+    id: Night Mode On
+    to: "on"
+  - platform: state
+    entity_id:
+      - binary_sensor.night_mode
+    id: Night Mode Off
+    to: "off"
+  - platform: state
+    entity_id:
+      - input_boolean.sleep_mode
+    to: "on"
+    id: Sleep Mode On
+  - platform: state
+    entity_id:
+      - input_boolean.sleep_mode
+    to: "off"
+    id: Sleep Mode Off
+  - platform: state
+    entity_id:
+      - media_player.bedroom_tv
+    id: TV On
+    to:
+      - idle
+      - paused
+      - playing
+  - platform: state
+    entity_id:
+      - media_player.bedroom_tv
+    id: TV Off
+    to:
+      - "off"
+      - standby
+condition: []
+action:
+  - choose:
+      - conditions:
+          - condition: or
+            conditions:
+              - condition: trigger
+                id: Motion
+              - condition: trigger
+                id: Night Mode On
+              - condition: trigger
+                id: Sleep Mode Off
+          - condition: state
+            entity_id: light.bedroom_lamps
+            state: "off"
+            for:
+              hours: 0
+              minutes: 0
+              seconds: 10
+          - condition: state
+            entity_id: input_boolean.bedroom_automatic_lights
+            state: "on"
+          - condition: state
+            entity_id: binary_sensor.bedroom_occupancy
+            state: "on"
+          - condition: state
+            entity_id: binary_sensor.bedroom_night_mode
+            state: "on"
+          - condition: state
+            entity_id: input_boolean.sleep_mode
+            state: "off"
+        sequence:
+          - service: light.turn_on
+            target:
+              entity_id: light.bedroom_lamps
+            data:
+              brightness: "{{ states(\"sensor.circadian_brightness\")|float(0) }}"
+      - conditions:
+          - condition: or
+            conditions:
+              - condition: trigger
+                id: No Motion
+              - condition: trigger
+                id: Night Mode Off
+              - condition: trigger
+                id: Sleep Mode On
+              - condition: trigger
+                id: TV Off
+          - condition: state
+            entity_id: light.bedroom_lamps
+            state: "on"
+          - condition: state
+            entity_id: input_boolean.bedroom_automatic_lights
+            state: "on"
+          - condition: state
+            entity_id: media_player.bedroom_tv
+            state:
+              - "off"
+              - standby
+              - unknown
+              - unavailable
+          - condition: state
+            entity_id: binary_sensor.bedroom_occupancy
+            state: "off"
+        sequence:
+          - service: light.turn_off
+            data: {}
+            target:
+              entity_id: light.bedroom_lamps
+      - conditions:
+          - condition: trigger
+            id: TV On
+          - condition: state
+            entity_id: binary_sensor.night_mode
+            state: "off"
+        sequence:
+          - service: light.turn_on
+            data:
+              brightness: "{{ states(\"sensor.circadian_brightness\")|float(0) }}"
+            target:
+              entity_id: light.bedroom_lamps
+mode: restart
